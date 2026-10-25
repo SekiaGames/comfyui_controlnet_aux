@@ -3,11 +3,23 @@ import json
 import numpy as np
 import math
 import time
-from scipy.ndimage.filters import gaussian_filter
+try:
+    from scipy.ndimage.filters import gaussian_filter  # scipy < 1.10
+except ImportError:
+    from scipy.ndimage import gaussian_filter  # scipy >= 1.10 moved it
 import matplotlib.pyplot as plt
 import matplotlib
 import torch
-from skimage.measure import label
+try:
+    from skimage.measure import label
+except ImportError:  # scikit-image not installed: scipy.ndimage.label is equivalent here
+    from scipy.ndimage import label as _nd_label
+
+    def label(binary, return_num=False, connectivity=None):
+        # skimage.measure.label(binary, connectivity=binary.ndim) == 8/26-connected full structure
+        structure = np.ones((3,) * binary.ndim, dtype=bool) if connectivity in (binary.ndim, None) else None
+        lab, n = _nd_label(binary, structure=structure)
+        return (lab, n) if return_num else lab
 
 from .model import handpose_model
 from . import util
